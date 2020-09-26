@@ -31,7 +31,6 @@ func GetChannelId() string {
 	}
 
 	return conversations.Channels[0].Id
-
 }
 
 func PostMessage(channelId string, message string) {
@@ -61,4 +60,8 @@ func PostMessage(channelId string, message string) {
 	json.NewDecoder(res.Body).Decode(&result)
 
 	fmt.Println(result)
+}
+
+func TestResponse() {
+
 }

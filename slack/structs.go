@@ -24,3 +24,8 @@ type SlackRequest struct {
 		Text    string `json:"text"`
 	} `json:"event"`
 }
+
+type SlashMessage struct {
+	ResponseType string `json:"response_type"`
+	Text         string `json:"text"`
+}
