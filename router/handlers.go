@@ -45,35 +45,3 @@ func slackHandler(w http.ResponseWriter, r *http.Request) {
 		slack.PostMessage(newReq.Event.Channel, "hey dude")
 	}
 }
-
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("testing this handler")
-	if err := r.ParseForm(); err != nil {
-		panic(err)
-	}
-
-	for key, value := range r.Form {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-
-	newMessage := slack.SlashMessage{
-		ResponseType: "ephemeral",
-		Text:         "whats up my dude",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newMessage)
-
-	/*
-
-		var newReq map[string]interface{}
-
-		if err := json.Unmarshal(body, &newReq); err != nil {
-			panic(err)
-		}
-
-		b, err := json.MarshalIndent(newReq, "", "  ")
-		fmt.Println(string(b))
-	*/
-}
