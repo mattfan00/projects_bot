@@ -5,14 +5,17 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"fmt"
+	"github.com/joho/godotenv"
 )
 
-var token = "xoxb-1392098059300-1385963107650-2tIYynqnoisg8oiJDHTNQ8HF"
-
 func GetChannelId() string {
-	getUrl := fmt.Sprintf("https://slack.com/api/conversations.list?token=%s", token)
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+	getUrl := fmt.Sprintf("https://slack.com/api/conversations.list?token=%s", os.Getenv("SLACK_TOKEN"))
 
 	resp, err := http.Get(getUrl)
 	if err != nil {
@@ -34,6 +37,10 @@ func GetChannelId() string {
 }
 
 func PostMessage(channelId string, message string) {
+	if err := godotenv.Load(); err != nil {
+		panic(err)
+	}
+	token := os.Getenv("SLACK_TOKEN")
 	postUrl := "https://slack.com/api/chat.postMessage"
 	newMessage := Message{token, message, channelId}
 	reqBody, err := json.Marshal(newMessage)
