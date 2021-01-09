@@ -1,19 +1,21 @@
 package router
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"bot/database"
 	"bot/slack"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Project struct {
-	Name      string
-	CreatedBy string
+	Name        string `bson:"name"`
+	Description string `bson:"description"`
+	CreatedBy   string `bson:"created_by"`
 }
-
-var Projects []Project
 
 func testSlash(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("testing this handler")
@@ -46,7 +48,11 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 		CreatedBy: r.FormValue("user_id"),
 	}
 
-	Projects = append(Projects, newProject)
+	createdProject, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(createdProject)
 
 	newMessage := slack.SlashMessage{
 		ResponseType: "ephemeral",
@@ -61,11 +67,21 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 func allProjects(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("view all projects")
 
-	var text string
-	for _, project := range Projects {
-		str := fmt.Sprintf("%s - <@%s>", project.Name, project.CreatedBy)
-		text = text + "\n" + str
+	cur, err := database.Db.Collection("projects").Find(context.TODO(), bson.D{})
+	if err != nil {
+		panic(err)
+	}
 
+	var text string
+	for cur.Next(context.TODO()) {
+		var project Project
+		err := cur.Decode(&project)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(project)
+		str := fmt.Sprintf("*%s* - <@%s>", project.Name, project.CreatedBy)
+		text = text + "\n" + str
 	}
 
 	newMessage := slack.SlashMessage{

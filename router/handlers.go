@@ -38,7 +38,7 @@ func slackHandler(w http.ResponseWriter, r *http.Request) {
 
 	if newReq.Challenge != "" {
 		fmt.Printf("this is a challenge")
-		fmt.Fprintf(w, "%s", newReq.Challenge)
+		// fmt.Fprintf(w, "%s", newReq.Challenge)
 	} else {
 		fmt.Printf("not a challenge")
 		fmt.Printf("%s", newReq.Event.Text)
