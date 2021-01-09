@@ -8,33 +8,16 @@ import (
 
 	"bot/database"
 	"bot/slack"
+	"bot/utils"
+
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Project struct {
 	Name        string `bson:"name"`
+	Url         string `bson:"url"`
 	Description string `bson:"description"`
 	CreatedBy   string `bson:"created_by"`
-}
-
-func testSlash(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("testing this handler")
-	if err := r.ParseForm(); err != nil {
-		panic(err)
-	}
-
-	for key, value := range r.Form {
-		fmt.Printf("%s: %s\n", key, value)
-	}
-
-	newMessage := slack.SlashMessage{
-		ResponseType: "ephemeral",
-		Text:         "whats up my dude\n not much",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newMessage)
 }
 
 func addProject(w http.ResponseWriter, r *http.Request) {
@@ -43,16 +26,23 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	text := r.FormValue("text")
+	fmt.Println(text)
+
+	// -n "name" -u url -d "description"
+	args := utils.GetArgs(text)
+
 	newProject := Project{
-		Name:      r.FormValue("text"),
-		CreatedBy: r.FormValue("user_id"),
+		Name:        args["Name"],
+		Url:         args["Url"],
+		Description: args["Description"],
+		CreatedBy:   r.FormValue("user_id"),
 	}
 
 	createdProject, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(createdProject)
 
 	newMessage := slack.SlashMessage{
 		ResponseType: "ephemeral",
@@ -80,7 +70,7 @@ func allProjects(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 		fmt.Println(project)
-		str := fmt.Sprintf("*%s* - <@%s>", project.Name, project.CreatedBy)
+		str := fmt.Sprintf("*%s* - <@%s>\n%s\n%s\n", project.Name, project.CreatedBy, project.Url, project.Description)
 		text = text + "\n" + str
 	}
 
