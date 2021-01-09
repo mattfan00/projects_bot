@@ -27,26 +27,32 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	text := r.FormValue("text")
-	fmt.Println(text)
 
 	// -n "name" -u url -d "description"
-	args := utils.GetArgs(text)
+	args, help := utils.GetArgs(text)
 
-	newProject := Project{
-		Name:        args["Name"],
-		Url:         args["Url"],
-		Description: args["Description"],
-		CreatedBy:   r.FormValue("user_id"),
-	}
+	var messageText string
+	if !help {
+		newProject := Project{
+			Name:        args.Name,
+			Url:         args.Url,
+			Description: args.Description,
+			CreatedBy:   r.FormValue("user_id"),
+		}
 
-	createdProject, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
-	if err != nil {
-		panic(err)
+		_, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
+		if err != nil {
+			panic(err)
+		}
+
+		messageText = "Created a new project!"
+	} else {
+		messageText = "*Example usage: * \n /add-project -n \"Project name\" -u https://www.github.com -d \"Project description\" \n\n *Options:* \n-n, --name=\tName of your project. Required.\n-u, --url=\tGitHub URL of project. \n-d, --description=\tA short description of the project."
 	}
 
 	newMessage := slack.SlashMessage{
 		ResponseType: "ephemeral",
-		Text:         "Created a new project!",
+		Text:         messageText,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -69,7 +75,6 @@ func allProjects(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(project)
 		str := fmt.Sprintf("*%s* - <@%s>\n%s\n%s\n", project.Name, project.CreatedBy, project.Url, project.Description)
 		text = text + "\n" + str
 	}
