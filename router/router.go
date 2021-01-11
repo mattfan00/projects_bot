@@ -9,6 +9,7 @@ import (
 func CreateRouter() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	router.Path("/slack").Methods("POST").HandlerFunc(handlers.SlackHandler)
+	router.Path("/slack/interactive").Methods("POST").HandlerFunc(handlers.InteractiveHandler)
 	router.Path("/").Methods("GET").HandlerFunc(handlers.IndexHandler)
 
 	router.Path("/slack/add-project").Methods("POST").HandlerFunc(handlers.AddProject)
