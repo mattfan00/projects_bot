@@ -1,4 +1,4 @@
-package router
+package handlers
 
 import (
 	"context"
@@ -7,20 +7,13 @@ import (
 	"net/http"
 
 	"bot/database"
-	"bot/slack"
-	"bot/utils"
+	"bot/helpers"
+	"bot/models"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type Project struct {
-	Name        string `bson:"name"`
-	Url         string `bson:"url"`
-	Description string `bson:"description"`
-	CreatedBy   string `bson:"created_by"`
-}
-
-func addProject(w http.ResponseWriter, r *http.Request) {
+func AddProject(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("add a new project")
 	if err := r.ParseForm(); err != nil {
 		panic(err)
@@ -29,11 +22,11 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 	text := r.FormValue("text")
 
 	// -n "name" -u url -d "description"
-	args, help := utils.GetArgs(text)
+	args, help := helpers.GetArgs(text)
 
 	var messageText string
 	if !help {
-		newProject := Project{
+		newProject := models.Project{
 			Name:        args.Name,
 			Url:         args.Url,
 			Description: args.Description,
@@ -50,7 +43,7 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 		messageText = "*Example usage: * \n /add-project -n \"Project name\" -u https://www.github.com -d \"Project description\" \n\n *Options:* \n-n, --name=\tName of your project. Required.\n-u, --url=\tGitHub URL of project. \n-d, --description=\tA short description of the project."
 	}
 
-	newMessage := slack.SlashMessage{
+	newMessage := models.SlashMessage{
 		ResponseType: "ephemeral",
 		Text:         messageText,
 	}
@@ -60,7 +53,7 @@ func addProject(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newMessage)
 }
 
-func allProjects(w http.ResponseWriter, r *http.Request) {
+func AllProjects(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("view all projects")
 
 	cur, err := database.Db.Collection("projects").Find(context.TODO(), bson.D{})
@@ -70,7 +63,7 @@ func allProjects(w http.ResponseWriter, r *http.Request) {
 
 	var text string
 	for cur.Next(context.TODO()) {
-		var project Project
+		var project models.Project
 		err := cur.Decode(&project)
 		if err != nil {
 			panic(err)
@@ -79,9 +72,59 @@ func allProjects(w http.ResponseWriter, r *http.Request) {
 		text = text + "\n" + str
 	}
 
-	newMessage := slack.SlashMessage{
+	newMessage := models.SlashMessage{
 		ResponseType: "ephemeral",
 		Text:         text,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(newMessage)
+}
+
+func DeleteProject(w http.ResponseWriter, r *http.Request) {
+	newMessage := map[string]interface{}{
+		"response_type": "ephemeral",
+		"blocks": []interface{}{
+			map[string]interface{}{
+				"type": "section",
+				"text": map[string]interface{}{
+					"type": "mrkdwn",
+					"text": "*Choose a project to delete:*",
+				},
+			},
+			map[string]interface{}{
+				"type":     "actions",
+				"elements": []interface{}{},
+			},
+		},
+	}
+
+	cur, err := database.Db.Collection("projects").Find(context.TODO(), bson.D{})
+	if err != nil {
+		panic(err)
+	}
+
+	for cur.Next(context.TODO()) {
+		var project models.Project
+		err := cur.Decode(&project)
+		if err != nil {
+			panic(err)
+		}
+
+		newElement := map[string]interface{}{
+			"type": "button",
+			"text": map[string]interface{}{
+				"type": "plain_text",
+				"text": project.Name,
+			},
+			"value":     "delete",
+			"action_id": project.Id,
+		}
+
+		a := newMessage["blocks"].([]interface{})[1].(map[string]interface{})["elements"].([]interface{})
+
+		newMessage["blocks"].([]interface{})[1].(map[string]interface{})["elements"] = append(a, newElement)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

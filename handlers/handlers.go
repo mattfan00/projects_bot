@@ -1,4 +1,4 @@
-package router
+package handlers
 
 import (
 	"encoding/json"
@@ -6,14 +6,15 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"bot/slack"
+	"bot/helpers"
+	"bot/models"
 )
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "hello from the index")
 }
 
-func slackHandler(w http.ResponseWriter, r *http.Request) {
+func SlackHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("reached the slack route")
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -24,7 +25,7 @@ func slackHandler(w http.ResponseWriter, r *http.Request) {
 
 	// var newReq map[string]interface{}
 
-	var newReq slack.SlackRequest
+	var newReq models.SlackRequest
 
 	if err := json.Unmarshal(body, &newReq); err != nil {
 		panic(err)
@@ -42,6 +43,6 @@ func slackHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Printf("not a challenge")
 		fmt.Printf("%s", newReq.Event.Text)
-		slack.PostMessage(newReq.Event.Channel, "hey dude")
+		helpers.PostMessage(newReq.Event.Channel, "hey dude")
 	}
 }

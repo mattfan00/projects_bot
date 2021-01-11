@@ -1,4 +1,4 @@
-package slack
+package helpers
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"bot/models"
 
 	"fmt"
 	"github.com/joho/godotenv"
@@ -27,7 +29,7 @@ func GetChannelId() string {
 		panic(err)
 	}
 
-	var conversations ConversationsList
+	var conversations models.ConversationsList
 	err = json.Unmarshal(body, &conversations)
 	if err != nil {
 		panic(err)
@@ -42,7 +44,7 @@ func PostMessage(channelId string, message string) {
 	}
 	token := os.Getenv("SLACK_TOKEN")
 	postUrl := "https://slack.com/api/chat.postMessage"
-	newMessage := Message{token, message, channelId}
+	newMessage := models.Message{token, message, channelId}
 	reqBody, err := json.Marshal(newMessage)
 	if err != nil {
 		panic(err)
@@ -67,8 +69,4 @@ func PostMessage(channelId string, message string) {
 	json.NewDecoder(res.Body).Decode(&result)
 
 	fmt.Println(result)
-}
-
-func TestResponse() {
-
 }
