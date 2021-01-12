@@ -19,38 +19,104 @@ func AddProject(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	text := r.FormValue("text")
+	/*
+		text := r.FormValue("text")
 
-	// -n "name" -u url -d "description"
-	args, help := helpers.GetArgs(text)
+		// -n "name" -u url -d "description"
+		args, help := helpers.GetArgs(text)
 
-	var messageText string
-	if !help {
-		newProject := models.Project{
-			Name:        args.Name,
-			Url:         args.Url,
-			Description: args.Description,
-			CreatedBy:   r.FormValue("user_id"),
+		var messageText string
+		if !help {
+			newProject := models.Project{
+				Name:        args.Name,
+				Url:         args.Url,
+				Description: args.Description,
+				CreatedBy:   r.FormValue("user_id"),
+			}
+
+			_, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
+			if err != nil {
+				panic(err)
+			}
+
+			messageText = "Created a new project!"
+		} else {
+			messageText = "*Example usage: * \n /add-project -n \"Project name\" -u https://www.github.com -d \"Project description\" \n\n *Options:* \n-n, --name=\tName of your project. Required.\n-u, --url=\tGitHub URL of project. \n-d, --description=\tA short description of the project."
 		}
 
-		_, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
-		if err != nil {
-			panic(err)
+		newMessage := models.SlashMessage{
+			ResponseType: "ephemeral",
+			Text:         messageText,
 		}
+	*/
 
-		messageText = "Created a new project!"
-	} else {
-		messageText = "*Example usage: * \n /add-project -n \"Project name\" -u https://www.github.com -d \"Project description\" \n\n *Options:* \n-n, --name=\tName of your project. Required.\n-u, --url=\tGitHub URL of project. \n-d, --description=\tA short description of the project."
+	b := []byte(fmt.Sprintf(`{
+	"trigger_id": "%s",
+	"view": {
+		"title": {
+			"type": "plain_text",
+			"text": "Add a new project",
+			"emoji": true
+		},
+		"submit": {
+			"type": "plain_text",
+			"text": "Submit",
+			"emoji": true
+		},
+		"type": "modal",
+		"close": {
+			"type": "plain_text",
+			"text": "Cancel",
+			"emoji": true
+		},
+		"blocks": [
+			{
+				"type": "input",
+				"element": {
+					"type": "plain_text_input",
+					"action_id": "name"
+				},
+				"label": {
+					"type": "plain_text",
+					"text": "Name (Required)",
+					"emoji": true
+				}
+			},
+			{
+				"type": "input",
+				"element": {
+					"type": "plain_text_input",
+					"action_id": "url"
+				},
+				"label": {
+					"type": "plain_text",
+					"text": "URL",
+					"emoji": true
+				}
+			},
+			{
+				"type": "input",
+				"element": {
+					"type": "plain_text_input",
+					"multiline": true,
+					"action_id": "description"
+				},
+				"label": {
+					"type": "plain_text",
+					"text": "Description",
+					"emoji": true
+				}
+			}
+		]
+	}
+	}`, r.FormValue("trigger_id")))
+
+	var newMessage interface{}
+	if err := json.Unmarshal(b, &newMessage); err != nil {
+		panic(err)
 	}
 
-	newMessage := models.SlashMessage{
-		ResponseType: "ephemeral",
-		Text:         messageText,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(newMessage)
+	helpers.NewPostRequest("https://slack.com/api/views.open", newMessage)
 }
 
 func AllProjects(w http.ResponseWriter, r *http.Request) {

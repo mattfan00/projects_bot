@@ -1,19 +1,16 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"bot/database"
 	"bot/helpers"
 	"bot/models"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -61,48 +58,46 @@ func InteractiveHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	action := newReq.(map[string]interface{})["actions"].([]interface{})[0].(map[string]interface{})
-	responseUrl := newReq.(map[string]interface{})["response_url"].(string)
+	messageType := newReq.(map[string]interface{})["type"]
 
-	if action["value"] == "delete" {
-		id, _ := primitive.ObjectIDFromHex(action["action_id"].(string))
-		_, err := database.Db.Collection("projects").DeleteOne(context.TODO(), bson.M{"_id": id})
+	if messageType == "view_submission" {
+		inputs := newReq.(map[string]interface{})["view"].(map[string]interface{})["state"].(map[string]interface{})["values"].(map[string]interface{})
+		newProject := models.Project{
+			CreatedBy: newReq.(map[string]interface{})["user"].(map[string]interface{})["id"].(string),
+		}
+		for _, v := range inputs {
+			if v.(map[string]interface{})["name"] != nil {
+				newProject.Name = v.(map[string]interface{})["name"].(map[string]interface{})["value"].(string)
+			} else if v.(map[string]interface{})["url"] != nil {
+				newProject.Url = v.(map[string]interface{})["url"].(map[string]interface{})["value"].(string)
+			} else if v.(map[string]interface{})["description"] != nil {
+				newProject.Description = v.(map[string]interface{})["description"].(map[string]interface{})["value"].(string)
+			}
+		}
+
+		_, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("delete success!")
+	} else if messageType == "block_actions" {
+		action := newReq.(map[string]interface{})["actions"].([]interface{})[0].(map[string]interface{})
+		responseUrl := newReq.(map[string]interface{})["response_url"].(string)
 
-		if err := godotenv.Load(); err != nil {
-			panic(err)
-		}
-		token := os.Getenv("SLACK_TOKEN")
-		newMessage := map[string]interface{}{
-			"replace_original": "true",
-			"text":             "Successfully deleted!",
-		}
-		reqBody, err := json.Marshal(newMessage)
-		if err != nil {
-			panic(err)
-		}
+		if action["value"] == "delete" {
+			id, _ := primitive.ObjectIDFromHex(action["action_id"].(string))
+			_, err := database.Db.Collection("projects").DeleteOne(context.TODO(), bson.M{"_id": id})
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("delete success!")
 
-		client := &http.Client{}
-		r, err := http.NewRequest("POST", responseUrl, bytes.NewBuffer(reqBody))
-		if err != nil {
-			panic(err)
-		}
-		r.Header.Add("Content-Type", "application/json")
-		r.Header.Add("Authorization", "Bearer "+token)
+			newMessage := map[string]interface{}{
+				"replace_original": "true",
+				"text":             "Successfully deleted!",
+			}
 
-		res, err := client.Do(r)
-
-		if err != nil {
-			panic(err)
+			helpers.NewPostRequest(responseUrl, newMessage)
 		}
 
-		var result map[string]interface{}
-
-		json.NewDecoder(res.Body).Decode(&result)
-
-		fmt.Println(result)
 	}
 }
