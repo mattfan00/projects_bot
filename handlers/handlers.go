@@ -36,11 +36,9 @@ func SlackHandler(w http.ResponseWriter, r *http.Request) {
 
 	if newReq.Challenge != "" {
 		fmt.Printf("this is a challenge")
-		// fmt.Fprintf(w, "%s", newReq.Challenge)
+		fmt.Fprintf(w, "%s", newReq.Challenge)
 	} else {
-		fmt.Printf("not a challenge")
-		fmt.Printf("%s", newReq.Event.Text)
-		helpers.PostMessage(newReq.Event.Channel, "hey dude")
+		helpers.PostMessage(newReq.Event.Channel, "Welcome to the _tech@nyu_ Projects Tracker app!\n\n *Available commands:*\n`/all-projects` - View all the projects\n`/add-project` - Add a new project\n`/delete-project` - Delete a project")
 	}
 }
 

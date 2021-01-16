@@ -15,6 +15,6 @@ func main() {
 
 	router := router.CreateRouter()
 
-	fmt.Println("server ready")
+	fmt.Println("server ready at port :8080")
 	http.ListenAndServe(":8080", router)
 }

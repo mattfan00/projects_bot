@@ -68,5 +68,5 @@ func PostMessage(channelId string, message string) {
 
 	json.NewDecoder(res.Body).Decode(&result)
 
-	fmt.Println(result)
+	//fmt.Println(result)
 }
