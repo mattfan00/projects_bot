@@ -19,37 +19,6 @@ func AddProject(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	/*
-		text := r.FormValue("text")
-
-		// -n "name" -u url -d "description"
-		args, help := helpers.GetArgs(text)
-
-		var messageText string
-		if !help {
-			newProject := models.Project{
-				Name:        args.Name,
-				Url:         args.Url,
-				Description: args.Description,
-				CreatedBy:   r.FormValue("user_id"),
-			}
-
-			_, err := database.Db.Collection("projects").InsertOne(context.TODO(), newProject)
-			if err != nil {
-				panic(err)
-			}
-
-			messageText = "Created a new project!"
-		} else {
-			messageText = "*Example usage: * \n /add-project -n \"Project name\" -u https://www.github.com -d \"Project description\" \n\n *Options:* \n-n, --name=\tName of your project. Required.\n-u, --url=\tGitHub URL of project. \n-d, --description=\tA short description of the project."
-		}
-
-		newMessage := models.SlashMessage{
-			ResponseType: "ephemeral",
-			Text:         messageText,
-		}
-	*/
-
 	b := []byte(fmt.Sprintf(`{
 	"trigger_id": "%s",
 	"view": {
@@ -149,6 +118,10 @@ func AllProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteProject(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		panic(err)
+	}
+
 	newMessage := map[string]interface{}{
 		"response_type": "ephemeral",
 		"blocks": []interface{}{
@@ -166,7 +139,8 @@ func DeleteProject(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	cur, err := database.Db.Collection("projects").Find(context.TODO(), bson.D{})
+	userId := r.FormValue("user_id")
+	cur, err := database.Db.Collection("projects").Find(context.TODO(), bson.M{"created_by": userId})
 	if err != nil {
 		panic(err)
 	}
